@@ -3,11 +3,10 @@
 import { cn } from "@/lib/utils";
 
 const TOPICS = [
-    { id: "cultura", label: "🏛️ Cultura Vasca", query: "Cultura y eventos en Euskadi" },
-    { id: "deportes", label: "⚽ Deportes", query: "Resultados deportivos EITB" },
-    { id: "noticias", label: "📰 Noticias", query: "Últimas noticias EITB" },
-    { id: "euskera", label: "🗣️ Euskera", query: "Aprender y practicar Euskera" },
-    { id: "planes", label: "📅 Planes", query: "Planes para el fin de semana" },
+    { id: "noticias", label: "📰 Noticias", query: "noticias" },
+    { id: "deportes", label: "⚽ Deportes", query: "deportes" },
+    { id: "television", label: "📺 Television", query: "television" },
+    { id: "radio", label: "📻 Radio", query: "radio" },
 ];
 
 interface TopicSelectorProps {
