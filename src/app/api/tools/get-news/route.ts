@@ -3,77 +3,56 @@ import * as cheerio from 'cheerio';
 import { newsCache } from '@/lib/news-cache';
 
 export async function POST(request: NextRequest) {
-    console.log('[News API] Starting request...');
+    console.log('[News API] Iniciando petición robusta...');
     
     try {
         const body = await request.json();
         const { category, limit = 5 } = body;
 
+        // 1. Gestión de Cache
         const cacheKey = `news:${category || 'all'}:${limit}`;
         const cached = newsCache.get(cacheKey);
-
         if (cached) {
-            console.log('[News API] Returning cached results for:', cacheKey);
+            console.log('[News API] Usando datos de cache:', cacheKey);
             return NextResponse.json({ ...cached, cached: true });
         }
 
         const domain = 'https://orain.eus';
         const baseUrl = 'https://orain.eus/es';
-        
         const validCategories = ['politica', 'economia', 'sociedad', 'cultura'];
         const selectedCategory = validCategories.includes(category) ? category : '';
         const url = selectedCategory ? `${baseUrl}/${selectedCategory}` : baseUrl;
 
-        console.log('[News API] Fetching index from:', url);
-
+        // 2. Fetch de la Portada
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; EITBBot/1.0)',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'es-ES,es;q=0.9',
             },
         });
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch Orain.eus: ${response.status} ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
 
         const html = await response.text();
         const $ = cheerio.load(html);
         
-        // Recuperamos tu diversidad de selectores original
-        const selectors = [
-            'article',
-            '.noticia',
-            '.news-item',
-            '.card-noticia',
-            '.item-noticia',
-            '.c-article'
-        ];
-        
-        let articleElements: any[] = [];
-        selectors.forEach(selector => {
-            if (articleElements.length === 0) {
-                articleElements = $(selector).toArray();
-            }
-        });
+        // Selectores robustos para encontrar artículos
+        const articleSelectors = ['article', '.noticia', '.news-item', '.card-noticia', '.c-article'];
+        let elements: any[] = [];
+        for (const sel of articleSelectors) {
+            if (elements.length === 0) elements = $(sel).toArray();
+        }
 
-        console.log(`[News API] Found ${articleElements.length} elements, processing top ${limit}`);
+        console.log(`[News API] Procesando ${elements.length} noticias en paralelo...`);
 
-        // PROCESAMIENTO EN PARALELO PARA DEEP SCRAPING
+        // 3. Procesamiento en Paralelo de Metadatos (La "Previa")
         const news = await Promise.all(
-            articleElements.slice(0, limit).map(async (el, index) => {
-                const $article = $(el);
-                
-                // Extracción de Título con tus múltiples fallbacks
-                const title = $article.find('h2, h3, h4, .titulo, .title, .headline').first().text().trim() ||
-                              $article.find('a').first().attr('title')?.trim() || 
-                              'Sin título';
+            elements.slice(0, limit).map(async (el) => {
+                const $el = $(el);
+                const titleFromList = $el.find('h2, h3, .titulo').first().text().trim();
+                const rawLink = $el.find('a').first().attr('href');
 
-                const summary = $article.find('p, .sumario, .summary, .descripcion, .lead').first().text().trim();
-                const rawLink = $article.find('a').first().attr('href');
-                
-                // Lógica de limpieza de URL para evitar el error /es/es/
+                // Limpieza robusta de URL
                 let cleanUrl = '';
                 if (rawLink) {
                     if (rawLink.startsWith('http')) {
@@ -84,87 +63,58 @@ export async function POST(request: NextRequest) {
                     }
                 }
 
-                // Extracción de Imagen
-                const rawImage = $article.find('img').first().attr('src') || 
-                                 $article.find('img').first().attr('data-src');
-                let cleanImage = null;
-                if (rawImage) {
-                    cleanImage = rawImage.startsWith('http') ? rawImage : `${domain}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
-                }
+                let metadata = {
+                    title: titleFromList || 'Sin título',
+                    description: $el.find('p, .sumario').first().text().trim(),
+                    image: null as string | null
+                };
 
-                const date = $article.find('time, .fecha, .date').first().text().trim() || 'Hoy';
-
-                // --- DEEP SCRAPING (Entrando en la noticia) ---
-                let fullContent = "";
+                // Fetch de Metadatos OG (Solo el <head>)
                 if (cleanUrl && cleanUrl.includes('orain.eus')) {
                     try {
-                        // Timeout agresivo para no penalizar al usuario
                         const detailRes = await fetch(cleanUrl, { 
-                            signal: AbortSignal.timeout(3000),
+                            signal: AbortSignal.timeout(2500),
                             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; EITBBot/1.0)' }
                         });
                         
                         if (detailRes.ok) {
                             const detailHtml = await detailRes.text();
-                            const $detail = cheerio.load(detailHtml);
+                            const $meta = cheerio.load(detailHtml);
                             
-                            // Buscamos el cuerpo de la noticia en los selectores comunes de Orain
-                            fullContent = $detail('.c-detail__body p, .article-body p, .text-content p, article p')
-                                .map((_, p) => $(p).text())
-                                .get()
-                                .join(' ')
-                                .trim()
-                                .slice(0, 1000); // Suficiente para el contexto del Agente
-                            
-                            console.log(`[News API] Deep scraped: ${title.slice(0, 30)}... (${fullContent.length} chars)`);
+                            metadata.title = $meta('meta[property="og:title"]').attr('content') || metadata.title;
+                            metadata.description = $meta('meta[property="og:description"]').attr('content') || 
+                                                  $meta('meta[name="description"]').attr('content') || 
+                                                  metadata.description;
+                            metadata.image = $meta('meta[property="og:image"]').attr('content') || null;
                         }
                     } catch (e) {
-                        console.warn(`[News API] Could not deep scrape ${cleanUrl}:`, e);
+                        console.warn(`[News API] Error en metadatos para ${cleanUrl}`);
                     }
                 }
 
                 return {
-                    title,
-                    summary: summary || 'Resumen no disponible',
-                    fullContent: fullContent || summary || 'No se pudo extraer el contenido detallado.',
+                    title: metadata.title,
+                    summary: metadata.description || 'Resumen no disponible',
+                    fullContent: metadata.description, // Enviado al Agente
                     url: cleanUrl,
-                    image: cleanImage,
-                    publishedAt: date,
+                    image: metadata.image,
                     source: 'Orain.eus',
-                    category: selectedCategory || 'general'
+                    scrapedAt: new Date().toISOString()
                 };
             })
         );
 
-        const result = {
-            success: true,
-            count: news.length,
-            news: news.filter(item => item.title !== 'Sin título'),
-            scrapedAt: new Date().toISOString(),
-            source: url
-        };
-
+        const result = { success: true, news: news.filter(n => n.title), source: url };
         newsCache.set(cacheKey, result);
-        console.log(`[News API] Completed. Returning ${news.length} items.`);
-        
         return NextResponse.json(result);
 
     } catch (error: any) {
-        console.error('[News API] Fatal Error:', error);
-        return NextResponse.json({ 
-            success: false, 
-            error: 'Internal Server Error', 
-            details: error.message 
-        }, { status: 500 });
+        console.error('[News API] Error:', error.message);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
 
-// Handler para GET (para pruebas rápidas en navegador)
 export async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get('category') || '';
-    return POST(new NextRequest(request.url, {
-        method: 'POST',
-        body: JSON.stringify({ category, limit: 5 })
-    }));
+    const category = request.nextUrl.searchParams.get('category') || '';
+    return POST(new NextRequest(request.url, { method: 'POST', body: JSON.stringify({ category, limit: 5 }) }));
 }
