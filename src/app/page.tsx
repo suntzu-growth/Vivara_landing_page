@@ -14,7 +14,6 @@ interface Message {
   content?: string;
   results?: any[];
   isStreaming?: boolean;
-  directAnswer?: string;
   type?: string;
 }
 
@@ -26,13 +25,14 @@ export default function Home() {
   
   const conversationRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isFirstMessageRef = useRef(true);
 
+  // Scroll automático al final de la conversación
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const updateAssistantMessage = (content: string, streaming: boolean, results?: any[], type?: string) => {
+  // Función para actualizar el mensaje de la IA de forma reactiva
+  const updateAssistantMessage = (content: string, streaming: boolean, results?: any[]) => {
     setMessages(prev => {
       const updated = [...prev];
       if (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
@@ -40,8 +40,7 @@ export default function Home() {
           ...updated[updated.length - 1],
           content: content || updated[updated.length - 1].content,
           isStreaming: streaming,
-          results: results || updated[updated.length - 1].results,
-          type: type || updated[updated.length - 1].type
+          results: results || updated[updated.length - 1].results
         };
         return updated;
       }
@@ -62,21 +61,14 @@ export default function Home() {
         const conversation = await TextConversation.startSession({
           signedUrl,
           clientTools: {
-            // RETORNOS VACÍOS PARA EVITAR ERROR DE TIPOS EN VERCEL
+            // Herramienta para cuando el Especialista encuentra noticias
+            displayNewsResults: async ({ news, summary }: any) => {
+              updateAssistantMessage(summary, false, news);
+              return;
+            },
+            // Herramienta general para respuestas de texto
             displayTextResponse: async ({ text }: any) => {
               updateAssistantMessage(text, false);
-              return; 
-            },
-            displayNewsResults: async ({ news, summary }: any) => {
-              updateAssistantMessage(summary, false, news, 'news');
-              return;
-            },
-            displaySchedule: async ({ schedule, summary }: any) => {
-              updateAssistantMessage(summary, false, schedule, 'schedule');
-              return;
-            },
-            displayError: async ({ message }: any) => {
-              updateAssistantMessage(`⚠️ ${message}`, false);
               return;
             }
           },
@@ -84,6 +76,7 @@ export default function Home() {
             const text = message.message || message.text || '';
             if (!text) return;
 
+            // Manejo de streaming de texto del agente
             if (message.role === 'agent' || message.type === 'text') {
                setMessages(prev => {
                  const updated = [...prev];
@@ -100,7 +93,7 @@ export default function Home() {
                });
             }
 
-            if (message.type === 'agent_response_end' || message.is_final) {
+            if (message.type === 'agent_response_end') {
               setIsStreaming(false);
             }
           },
@@ -110,6 +103,7 @@ export default function Home() {
         conversationRef.current = conversation;
         setAgentStatus('connected');
       } catch (err) {
+        console.error("Error al conectar con ElevenLabs:", err);
         setAgentStatus('disconnected');
       }
     };
@@ -118,46 +112,75 @@ export default function Home() {
     return () => { if (conversationRef.current) conversationRef.current.endSession(); };
   }, []);
 
-  const handleSearch = async (query?: string, isCategorySelection: boolean = false) => {
+  const handleSearch = async (query?: string) => {
     if (!query || agentStatus !== 'connected') return;
-    setMessages(prev => [...prev, { role: 'user', content: query }, { role: 'assistant', content: 'Consultando...', isStreaming: true }]);
+
+    // Añadimos mensaje del usuario y placeholder del asistente
+    setMessages(prev => [
+      ...prev, 
+      { role: 'user', content: query }, 
+      { role: 'assistant', content: 'Consultando...', isStreaming: true }
+    ]);
+    
     setHasSearched(true);
     setIsStreaming(true);
+
     try {
-      const prompt = isCategorySelection ? `Sección seleccionada: ${query}` : query;
-      await conversationRef.current.sendUserMessage(prompt);
-    } catch (err) { setIsStreaming(false); }
+      await conversationRef.current.sendUserMessage(query);
+    } catch (err) {
+      console.error("Error al enviar mensaje:", err);
+      setIsStreaming(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col selection:bg-blue-100">
       <Header />
-      <main className="flex-1 flex flex-col relative pt-16">
+      
+      <main className="flex-1 flex flex-col pt-16 relative">
         {!hasSearched ? (
-          <div className="flex flex-col items-center w-full pt-12">
+          <div className="flex flex-col items-center w-full pt-12 animate-in fade-in duration-1000">
             <SearchHero />
-            <QuestionMarquee onQuestionClick={(q) => handleSearch(q)} />
-            <TopicSelector onSelect={(t) => handleSearch(t, true)} className="mt-8" />
-            <div className="w-full px-4 mb-12"><SearchInput onSearch={(q) => handleSearch(q)} /></div>
+            <QuestionMarquee onQuestionClick={handleSearch} />
+            <TopicSelector onSelect={(t) => handleSearch(`Noticias de ${t}`)} className="mt-8" />
+            <div className="w-full px-4 mb-20 max-w-3xl">
+                <SearchInput onSearch={handleSearch} />
+            </div>
           </div>
         ) : (
-          <div className="container mx-auto px-4 pb-32 flex flex-col space-y-8 pt-8">
+          <div className="container mx-auto px-4 pb-40 max-w-4xl pt-8 space-y-12">
             {messages.map((msg, idx) => (
-              <div key={idx} className={`w-full ${msg.role === 'user' ? 'flex justify-end' : ''}`}>
+              <div key={idx} className={cn(
+                "w-full flex flex-col",
+                msg.role === 'user' ? "items-end" : "items-start"
+              )}>
                 {msg.role === 'user' ? (
-                  <div className="bg-gray-100 text-gray-800 px-6 py-3 rounded-2xl max-w-[80%] text-lg">{msg.content}</div>
+                  <div className="bg-gray-100 text-gray-800 px-6 py-4 rounded-2xl max-w-[85%] text-lg font-medium shadow-sm border border-gray-200">
+                    {msg.content}
+                  </div>
                 ) : (
-                  <ResultsStream isStreaming={!!msg.isStreaming} results={msg.results} directAnswer={msg.content} text={msg.content} />
+                  <ResultsStream 
+                    isStreaming={!!msg.isStreaming} 
+                    results={msg.results} 
+                    text={msg.content} 
+                  />
                 )}
               </div>
             ))}
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} className="h-4" />
           </div>
         )}
+
+        {/* Barra de búsqueda fija cuando ya hay resultados */}
         {hasSearched && (
-          <div className="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-md border-t p-4 pb-8"><div className="container mx-auto max-w-3xl"><SearchInput onSearch={(q) => handleSearch(q)} /></div></div>
+          <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-gray-100 p-6 z-50">
+            <div className="container mx-auto max-w-3xl">
+              <SearchInput onSearch={handleSearch} />
+            </div>
+          </div>
         )}
       </main>
+
       {!hasSearched && <Footer />}
     </div>
   );
