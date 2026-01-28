@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Función simple para convertir Markdown básico a HTML
 function parseMarkdown(text: string): string {
@@ -18,19 +18,28 @@ function parseMarkdown(text: string): string {
 export function ResultsStream({ isStreaming, results, text }: any) {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null); // ✅ Ref para el interval
   
   useEffect(() => {
+    // ✅ CRÍTICO: Limpiar el interval anterior SIEMPRE que text cambie
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    // ✅ Resetear el estado cuando text cambia
+    setDisplayedText('');
+    setIsTyping(false);
+    
     // Si no hay texto o es "Consultando...", no hacer streaming
     if (!text || text === 'Consultando...') {
       setDisplayedText(text || '');
-      setIsTyping(false);
       return;
     }
 
     // Si el texto es muy corto (< 50 caracteres), mostrarlo completo
     if (text.length < 50) {
       setDisplayedText(text);
-      setIsTyping(false);
       return;
     }
 
@@ -39,9 +48,9 @@ export function ResultsStream({ isStreaming, results, text }: any) {
     let currentIndex = 0;
     
     // Velocidad adaptativa: más rápido para textos largos
-    const speed = text.length > 500 ? 10 : 20; // ms por carácter
+    const speed = text.length > 500 ? 10 : 20; // ms por palabra
 
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       if (currentIndex < text.length) {
         // Mostrar palabra completa en vez de carácter por carácter (más natural)
         const nextSpace = text.indexOf(' ', currentIndex + 1);
@@ -51,11 +60,20 @@ export function ResultsStream({ isStreaming, results, text }: any) {
         currentIndex = nextIndex;
       } else {
         setIsTyping(false);
-        clearInterval(interval);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
       }
     }, speed);
 
-    return () => clearInterval(interval);
+    // Cleanup: cancelar interval cuando el componente se desmonte o text cambie
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [text]);
 
   const htmlContent = parseMarkdown(displayedText);
