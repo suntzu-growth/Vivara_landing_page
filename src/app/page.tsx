@@ -113,7 +113,11 @@ export default function Home() {
                 const res = await fetch("/api/tools/save-user-data", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ name, email })
+                  body: JSON.stringify({
+                    name,
+                    email,
+                    conversation_id: conversationRef.current?.conversationId
+                  })
                 });
                 const data = await res.json();
                 console.log('[Client Tool] saveUserData Response:', data);
@@ -220,7 +224,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
-      <Header />
+      <Header conversationId={conversationRef.current?.conversationId} />
       <main className="flex-1 pt-16">
         {!hasSearched ? (
           <div className="max-w-4xl mx-auto flex flex-col items-center pt-12 px-6">

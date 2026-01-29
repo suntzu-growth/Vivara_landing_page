@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function Header() {
+export function Header({ conversationId }: { conversationId?: string }) {
     const router = useRouter();
     const [showModal, setShowModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +27,10 @@ export function Header() {
             const res = await fetch("/api/tools/save-user-data", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({
+                    ...formData,
+                    conversation_id: conversationId
+                })
             });
             if (res.ok) {
                 setIsSuccess(true);
