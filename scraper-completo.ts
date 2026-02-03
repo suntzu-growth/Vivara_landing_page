@@ -11,6 +11,7 @@ interface Article {
     summary: string;
     content?: string;
     image?: string;
+    images?: string[];
     publishDate?: string;
     scrapedAt: string;
 }
@@ -47,12 +48,24 @@ export async function scrapeEverything(): Promise<ScrapingResult> {
                 if (!href) continue;
                 const fullUrl = href.startsWith('http') ? href : `https://www.vivla.com${href}`;
 
-                const $container = $link.closest('div').parent();
+                const $container = $link.closest('.ci-homes');
                 const title = $container.find('h2').first().text().trim() || 'Casa Vivla';
                 const price = $container.find('h6').first().text().trim();
 
                 const specs = $container.find('h4, h5').map((_, el) => $(el).text().trim()).get();
                 const summary = specs.join(' | ') + (price ? ` | Precio: ${price}` : '');
+
+                // Extraer hasta 3 imágenes de la galería del card
+                const images = $container.find('.collection-list-wrapper.w-dyn-list .w-dyn-repeater-item')
+                    .map((_, el) => {
+                        const style = $(el).attr('style') || '';
+                        // Intentar capturar la URL entre url("...") o url(&quot;...&quot;) o url(...)
+                        const match = style.match(/url\(["']?([^"')]*)["']?\)/i);
+                        return match ? match[1].replace(/&quot;/g, '') : null;
+                    })
+                    .get()
+                    .filter(url => url !== null)
+                    .slice(0, 3);
 
                 const art: Article = {
                     id: Buffer.from(fullUrl).toString('base64').substring(0, 10),
@@ -61,6 +74,8 @@ export async function scrapeEverything(): Promise<ScrapingResult> {
                     url: fullUrl,
                     category: 'inmobiliaria',
                     summary,
+                    images: images,
+                    image: images[0] || undefined,
                     scrapedAt: timestamp
                 };
 
@@ -79,8 +94,9 @@ export async function scrapeEverything(): Promise<ScrapingResult> {
                             .join('\n\n');
 
                         art.content = content || summary;
-                        art.image = $d('meta[property="og:image"]').attr('content');
-                        if (!art.image) art.image = $container.find('img').first().attr('src');
+                        if (!art.image) {
+                            art.image = $d('meta[property="og:image"]').attr('content');
+                        }
                     }
                     await new Promise(r => setTimeout(r, 100));
                 } catch (e) { }

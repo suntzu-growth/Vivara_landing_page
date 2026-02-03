@@ -80,14 +80,21 @@ async function generatePDF() {
             doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
             doc.setTextColor(41, 128, 185);
-            doc.text(`IMAGEN:`, 20, metaY);
+            doc.text(`IMÁGENES:`, 20, metaY);
             doc.setFont("helvetica", "normal");
             doc.setTextColor(0);
             doc.setFontSize(8);
-            doc.text(article.image || "No disponible", 40, metaY);
+
+            const displayImages = article.images && article.images.length > 0
+                ? article.images
+                : (article.image ? [article.image] : ["No disponible"]);
+
+            displayImages.forEach((img, imgIndex) => {
+                doc.text(`- ${img}`, 40, metaY + (imgIndex * 4));
+            });
 
             doc.setFontSize(10);
-            metaY += 10;
+            metaY += (displayImages.length * 4) + 5;
 
             // Resumen
             doc.setFont("helvetica", "bold");

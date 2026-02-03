@@ -35,12 +35,24 @@ async function runScraper() {
                 const href = $link.attr('href');
                 const fullUrl = href.startsWith('http') ? href : `https://www.vivla.com${href}`;
 
-                const $container = $link.closest('div').parent();
+                const $container = $link.closest('.ci-homes');
                 const title = $container.find('h2').first().text().trim() || 'Casa Vivla';
                 const price = $container.find('h6').first().text().trim();
 
                 const specs = $container.find('h4, h5').map((_, el) => $(el).text().trim()).get();
                 const summary = specs.join(' | ') + (price ? ` | Precio: ${price}` : '');
+
+                // Extraer hasta 3 imágenes de la galería del card
+                const images = $container.find('.collection-list-wrapper.w-dyn-list .w-dyn-repeater-item')
+                    .map((_, el) => {
+                        const style = $(el).attr('style') || '';
+                        // Intentar capturar la URL entre url("...") o url(&quot;...&quot;) o url(...)
+                        const match = style.match(/url\(["']?([^"')]*)["']?\)/i);
+                        return match ? match[1].replace(/&quot;/g, '') : null;
+                    })
+                    .get()
+                    .filter(url => url !== null)
+                    .slice(0, 3);
 
                 const art = {
                     id: Buffer.from(fullUrl).toString('base64').substring(0, 10),
@@ -49,6 +61,8 @@ async function runScraper() {
                     url: fullUrl,
                     category: 'inmobiliaria',
                     summary,
+                    images: images,
+                    image: images[0] || null, // Primer imagen para compatibilidad
                     scrapedAt: timestamp
                 };
 
