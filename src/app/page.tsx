@@ -212,6 +212,16 @@ export default function Home() {
                 return updated;
               });
             }
+          },
+          onError: (error: any) => {
+            console.error('[ElevenLabs ERROR]:', error);
+          },
+          onDisconnect: () => {
+            console.warn('[ElevenLabs] Desconectado');
+            setAgentStatus('disconnected');
+          },
+          onStatusChange: (status: any) => {
+            console.log('[ElevenLabs Status Change]:', status);
           }
         });
 
@@ -261,6 +271,7 @@ export default function Home() {
     }]);
 
     console.log('[User] Enviando query:', processedQuery);
+    console.log('[Timer] Inicio de búsqueda:', new Date().toISOString());
     setMessages(prev => {
       const updated = [...prev];
       const lastIdx = updated.findLastIndex(m => m.role === 'assistant');
