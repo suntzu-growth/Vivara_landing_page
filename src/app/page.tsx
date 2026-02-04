@@ -107,17 +107,20 @@ export default function Home() {
               const propertiesArray = Array.isArray(properties) ? properties : [properties];
 
               // Map output to include images array if present
-              // [MEGA-PARSER] Extract all valid URLs from anywhere in the property object
+              // [MEGA-PARSER] Aggressive URL collector and surgeon
               const mappedResults = propertiesArray.map(p => {
                 // Stringify the whole object to find URLs hidden in any field (images, image, image1, etc.)
                 const rawString = JSON.stringify(p);
 
-                // Regex: Find all https links, stopping before common separators or JSON boundaries
-                const urlMatches = rawString.match(/https:\/\/[^\s"'\\]+?(?=- https:\/\/|-https:\/\/|Resumen:|Fuente:|\s|["'\\]|$)/gi);
+                // Regex: Broadly find all https links
+                const urlMatches = rawString.match(/https:\/\/[^"'\s\\]+/gi);
 
                 let detectedImages = urlMatches ? urlMatches.map((url: string) => {
-                  // Final cleaning of the URL
-                  return url.replace(/^-+/, '').trim();
+                  // Surgical cleaning: Remove trailing PDF separators or tags
+                  return url
+                    .replace(/(Resumen:?|Fuente:?|URL:?|IMÁGENES:?|-$).*$/, '') // Cut off at any tag or trailing hyphen
+                    .replace(/[",\\]+$/, '') // Trim JSON/String leftovers
+                    .trim();
                 }) : [];
 
                 // Filter: Keep only links that look like images (CDN, common extensions)
@@ -125,7 +128,7 @@ export default function Home() {
                   .filter(url => {
                     const low = url.toLowerCase();
                     return low.startsWith('http') &&
-                      (low.includes('cdn') || low.includes('website-files.com') || /\.(jpg|jpeg|png|webp|gif|svg)/.test(low));
+                      (low.includes('cdn') || low.includes('website-files.com') || /\.(jpg|jpeg|png|webp|gif|svg|avif)/.test(low));
                   })
                   .slice(0, 3);
 
