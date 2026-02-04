@@ -101,6 +101,22 @@ export default function Home() {
               return "Deportes mostrados correctamente";
             },
 
+            displayPropertyResults: async ({ properties, summary }: any) => {
+              console.log('[Client Tool] displayPropertyResults:', { properties, summary });
+
+              const propertiesArray = Array.isArray(properties) ? properties : [properties];
+
+              // Map output to include images array if present
+              const mappedResults = propertiesArray.map(p => ({
+                ...p,
+                // Ensure it has an images array
+                images: p.images || (p.image ? [p.image] : [])
+              }));
+
+              updateAssistantMessage(null, false, mappedResults, true);
+              return "Propiedades mostradas correctamente";
+            },
+
             displayTextResponse: async ({ text }: any) => {
               console.log('[Client Tool] displayTextResponse:', text);
               updateAssistantMessage(text, false, undefined, true);
