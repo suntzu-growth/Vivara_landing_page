@@ -107,37 +107,26 @@ export default function Home() {
               const propertiesArray = Array.isArray(properties) ? properties : [properties];
 
               // Map output to include images array if present
-              // Map output to include images array if present
+              // [MEGA-PARSER] Extract all valid URLs from anywhere in the property object
               const mappedResults = propertiesArray.map(p => {
-                let images: string[] = [];
+                // Stringify the whole object to find URLs hidden in any field (images, image, image1, etc.)
+                const rawString = JSON.stringify(p);
 
-                // 1. If images is already an array, use it as baseline
-                if (Array.isArray(p.images)) {
-                  images = [...p.images];
-                }
+                // Regex: Find all https links, stopping before common separators or JSON boundaries
+                const urlMatches = rawString.match(/https:\/\/[^\s"'\\]+?(?=- https:\/\/|-https:\/\/|Resumen:|Fuente:|\s|["'\\]|$)/gi);
 
-                // 2. Combine all possible string sources into one searchable string
-                // We include p.images here too in case it was a string
-                const stringSource = [
-                  typeof p.images === 'string' ? p.images : '',
-                  p.image,
-                  p.image1,
-                  p.image2,
-                  p.image3
-                ].filter(val => typeof val === 'string' && val.length > 0).join(' ');
+                let detectedImages = urlMatches ? urlMatches.map((url: string) => {
+                  // Final cleaning of the URL
+                  return url.replace(/^-+/, '').trim();
+                }) : [];
 
-                // 3. Extract URLs if there's any text to search
-                if (stringSource.length > 0) {
-                  const urlMatches = stringSource.match(/https:\/\/[^\s]+?(?=- https:\/\/|-https:\/\/|Resumen:|Fuente:|\s|$)/gi);
-                  if (urlMatches) {
-                    const extracted = urlMatches.map((url: string) => url.replace(/^-+/, '').trim());
-                    images = [...images, ...extracted];
-                  }
-                }
-
-                // 4. Final cleanup and deduplication
-                const finalImages = [...new Set(images)]
-                  .filter(url => typeof url === 'string' && url.startsWith('http'))
+                // Filter: Keep only links that look like images (CDN, common extensions)
+                const finalImages = [...new Set(detectedImages)]
+                  .filter(url => {
+                    const low = url.toLowerCase();
+                    return low.startsWith('http') &&
+                      (low.includes('cdn') || low.includes('website-files.com') || /\.(jpg|jpeg|png|webp|gif|svg)/.test(low));
+                  })
                   .slice(0, 3);
 
                 return {
