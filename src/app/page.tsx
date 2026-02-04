@@ -51,7 +51,7 @@ export default function Home() {
           lastToolCallTimestamp.current = Date.now();
           finalContent = content || lastMessage.content;
         } else {
-          const baseContent = lastMessage.content === 'Consultando...' ? '' : lastMessage.content;
+          const baseContent = (lastMessage.content === 'Consultando...' || lastMessage.content === '🔍 Buscando en Vivla...') ? '' : lastMessage.content;
           finalContent = content ? baseContent + content : lastMessage.content;
         }
 
@@ -202,7 +202,7 @@ export default function Home() {
                   // Evitar que el streaming repita algo que ya está en el contenido
                   if (updated[lastIdx].content.includes(text.trim())) return prev;
 
-                  const baseContent = updated[lastIdx].content === 'Consultando...' ? '' : updated[lastIdx].content;
+                  const baseContent = (updated[lastIdx].content === 'Consultando...' || updated[lastIdx].content === '🔍 Buscando en Vivla...') ? '' : updated[lastIdx].content;
                   updated[lastIdx] = {
                     ...updated[lastIdx],
                     content: baseContent + text,
