@@ -107,31 +107,42 @@ export default function Home() {
               const propertiesArray = Array.isArray(properties) ? properties : [properties];
 
               // Map output to include images array if present
+              // Map output to include images array if present
               const mappedResults = propertiesArray.map(p => {
-                // Combine all possible image sources into one searchable string
-                const combinedData = [
-                  p.images,
+                let images: string[] = [];
+
+                // 1. If images is already an array, use it as baseline
+                if (Array.isArray(p.images)) {
+                  images = [...p.images];
+                }
+
+                // 2. Combine all possible string sources into one searchable string
+                // We include p.images here too in case it was a string
+                const stringSource = [
+                  typeof p.images === 'string' ? p.images : '',
                   p.image,
                   p.image1,
                   p.image2,
                   p.image3
-                ].filter(val => typeof val === 'string').join(' ');
+                ].filter(val => typeof val === 'string' && val.length > 0).join(' ');
 
-                // Robust Regex: Find all https links, stopping before hyphen-separators, whitespace, or "Resumen:"
-                // We use a non-greedy match that looks ahead for common separators in the PDF/Agent format
-                const urlMatches = combinedData.match(/https:\/\/[^\s]+?(?=- https:\/\/|-https:\/\/|Resumen:|Fuente:|\s|$)/gi);
+                // 3. Extract URLs if there's any text to search
+                if (stringSource.length > 0) {
+                  const urlMatches = stringSource.match(/https:\/\/[^\s]+?(?=- https:\/\/|-https:\/\/|Resumen:|Fuente:|\s|$)/gi);
+                  if (urlMatches) {
+                    const extracted = urlMatches.map((url: string) => url.replace(/^-+/, '').trim());
+                    images = [...images, ...extracted];
+                  }
+                }
 
-                let images = urlMatches ? urlMatches.map((url: string) => {
-                  // Clean up common leftovers at the start/end of the match
-                  return url.replace(/^-+/, '').trim();
-                }) : [];
-
-                // Deduplicate and filter out broken links
-                images = [...new Set(images)].filter(url => url.startsWith('http'));
+                // 4. Final cleanup and deduplication
+                const finalImages = [...new Set(images)]
+                  .filter(url => typeof url === 'string' && url.startsWith('http'))
+                  .slice(0, 3);
 
                 return {
                   ...p,
-                  images: images.length > 0 ? images.slice(0, 3) : []
+                  images: finalImages
                 };
               });
 
