@@ -54,8 +54,8 @@ export function Header({ conversationId }: { conversationId?: string }) {
                     >
                         <div className="relative w-32 h-10">
                             <img
-                                src="/suntzu_logo.svg"
-                                alt="Suntzu - Volver al inicio"
+                                src="/vivara-logo.png"
+                                alt="Vivara - Volver al inicio"
                                 className="object-contain w-full h-full"
                             />
                         </div>
@@ -93,7 +93,7 @@ export function Header({ conversationId }: { conversationId?: string }) {
                         </div>
 
                         <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
-                            {isSuccess ? "¡Bienvenido a Vivla!" : "Personaliza tu experiencia"}
+                            {isSuccess ? "¡Bienvenido a Vivara!" : "Personaliza tu experiencia"}
                         </h2>
 
                         {isSuccess ? (
@@ -168,7 +168,7 @@ export function Header({ conversationId }: { conversationId?: string }) {
                         )}
 
                         <p className="text-xs text-gray-500 mt-4 text-center">
-                            Gracias por tu interés en Vivla 🙏
+                            Gracias por tu interés en Vivara 🙏
                         </p>
                     </div>
                 </div>

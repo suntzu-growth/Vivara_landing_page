@@ -51,7 +51,7 @@ export default function Home() {
           lastToolCallTimestamp.current = Date.now();
           finalContent = content || lastMessage.content;
         } else {
-          const baseContent = (lastMessage.content === 'Consultando...' || lastMessage.content === '🔍 Buscando en Vivla...') ? '' : lastMessage.content;
+          const baseContent = (lastMessage.content === 'Consultando...' || lastMessage.content === '🔍 Buscando en Vivara...') ? '' : lastMessage.content;
           finalContent = content ? baseContent + content : lastMessage.content;
         }
 
@@ -228,7 +228,7 @@ export default function Home() {
 
                   const baseContent = (
                     updated[lastIdx].content === 'Consultando...' ||
-                    updated[lastIdx].content === '🔍 Buscando en Vivla...'
+                    updated[lastIdx].content === '🔍 Buscando en Vivara...'
                   ) ? '' : updated[lastIdx].content;
 
                   updated[lastIdx] = {
@@ -304,7 +304,7 @@ export default function Home() {
       const updated = [...prev];
       const lastIdx = updated.findLastIndex(m => m.role === 'assistant');
       if (lastIdx !== -1) {
-        updated[lastIdx].content = '🔍 Buscando en Vivla...';
+        updated[lastIdx].content = '🔍 Buscando en Vivara...';
       }
       return updated;
     });
