@@ -54,8 +54,8 @@ export function Header({ conversationId }: { conversationId?: string }) {
                     >
                         <div className="relative w-32 h-10">
                             <img
-                                src="/vivara-logo.png"
-                                alt="Vivara - Volver al inicio"
+                                src="/suntzu_logo.svg"
+                                alt="Suntzu - Volver al inicio"
                                 className="object-contain w-full h-full"
                             />
                         </div>
