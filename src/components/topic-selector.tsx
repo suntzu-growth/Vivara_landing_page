@@ -3,10 +3,10 @@
 import { cn } from "@/lib/utils";
 
 const TOPICS = [
-    { id: "noticias", label: "Menorca", query: "Menorca", disabled: false },
-    { id: "deportes", label: "Cantabria", query: "Cantabria", disabled: false }, // ✅ HABILITADO
-    { id: "television", label: "📺 Television", query: "television", disabled: true },
-    { id: "radio", label: "📻 Radio", query: "radio", disabled: true },
+    { id: "chamberi", label: "Chamberí", query: "Chamberí", disabled: false },
+    { id: "salamanca", label: "Salamanca", query: "Salamanca", disabled: false },
+    { id: "retiro", label: "Retiro", query: "Retiro", disabled: false },
+    { id: "pozuelo", label: "Pozuelo", query: "Pozuelo", disabled: false },
 ];
 
 interface TopicSelectorProps {

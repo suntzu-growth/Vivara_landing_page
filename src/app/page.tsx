@@ -345,7 +345,12 @@ export default function Home() {
           <div className="max-w-3xl mx-auto px-6 pb-40 space-y-10 pt-10 animate-in fade-in duration-500">
             {messages.map((msg, i) => (
               <div key={`msg-${i}-${msg.timestamp || i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={msg.role === 'user' ? "p-4 rounded-2xl rounded-tr-none shadow-md max-w-[80%] text-white" : "w-full"} style={msg.role === 'user' ? { backgroundColor: '#e38e41' } : {}}>
+                <div
+                  className={msg.role === 'user'
+                    ? "p-4 rounded-2xl rounded-tr-none shadow-md max-w-[80%] text-white"
+                    : "p-6 rounded-2xl rounded-tl-none shadow-md max-w-[90%] bg-black text-white"}
+                  style={msg.role === 'user' ? { backgroundColor: '#e38e41' } : {}}
+                >
                   <ResultsStream
                     key={`stream-${i}-${msg.timestamp || i}`}
                     isStreaming={!!msg.isStreaming}
