@@ -35,7 +35,7 @@ export function SearchInput({ onSearch }: SearchInputProps) {
                 />
                 <Input
                     type="text"
-                    placeholder="Pregunta algo sobre Vivla..."
+                    placeholder="Pregunta algo sobre Vivara..."
                     className="border-none shadow-none focus-visible:ring-0 text-lg py-6 px-4 bg-transparent flex-1 placeholder:text-gray-400"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}

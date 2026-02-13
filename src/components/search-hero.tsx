@@ -4,7 +4,7 @@ export function SearchHero() {
             <img
                 src="/vivara-logo.png"
                 alt="Vivara"
-                className="h-20 md:h-28 w-auto"
+                className="h-24 md:h-36 w-auto"
             />
             <p className="text-sm md:text-base text-gray-700 font-sans max-w-xl mx-auto leading-relaxed px-4">
                 Encuentra y disfruta tu nuevo hogar con Vivara<br />
