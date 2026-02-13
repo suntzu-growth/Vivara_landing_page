@@ -2,19 +2,19 @@ import { cn } from "@/lib/utils";
 
 // ✅ HABILITADAS: Solo noticias y deportes
 const QUESTIONS_ROW_1 = [
-    "Casas de lujo en Menorca",
-    "Áticos en Madrid con terraza",
-    "Viviendas cerca de la playa",
-    "Propiedades en el campo",
-    "Inversiones inmobiliarias rentables",
+    "Pisos en venta en Chamberí",
+    "Áticos de lujo en Salamanca",
+    "¿Qué servicios ofrece Vivara?",
+    "Viviendas cerca del Retiro",
+    "Inversiones rentables en Madrid Centro",
 ];
 
 const QUESTIONS_ROW_2 = [
-    "Casas con piscina privada",
-    "Oportunidades en Ibiza",
-    "Chalets en la montaña",
-    "Propiedades exclusivas en preventa",
-    "Villas de diseño contemporáneo",
+    "Casas exclusivas en Pozuelo",
+    "Mejores barrios para familias en Madrid",
+    "¿Cómo encontrar mi nuevo hogar con Vivara?",
+    "Pisos reformados en el Viso",
+    "Villas de lujo a las afueras de Madrid",
 ];
 
 export function QuestionMarquee({ onQuestionClick }: { onQuestionClick?: (question: string) => void }) {
